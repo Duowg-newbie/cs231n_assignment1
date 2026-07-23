@@ -40,9 +40,16 @@ def softmax_loss_naive(W, X, y, reg):
 
         loss -= logp[y[i]]  # negative log probability is the loss
 
+        for j in range(num_classes):
+          if j == y[i]:
+            dW[:, j] += (p[j] - 1) * X[i]
+          else:
+            dW[:, j] += p[j] * X[i]
 
     # normalized hinge loss plus regularization
     loss = loss / num_train + reg * np.sum(W * W)
+
+    dW = dW / num_train + 2 * reg * W
 
     #############################################################################
     # TODO:                                                                     #
@@ -52,7 +59,6 @@ def softmax_loss_naive(W, X, y, reg):
     # loss is being computed. As a result you may need to modify some of the    #
     # code above to compute the gradient.                                       #
     #############################################################################
-
 
     return loss, dW
 
@@ -67,13 +73,25 @@ def softmax_loss_vectorized(W, X, y, reg):
     loss = 0.0
     dW = np.zeros_like(W)
 
+    num_train = X.shape[0]
 
     #############################################################################
     # TODO:                                                                     #
     # Implement a vectorized version of the softmax loss, storing the           #
     # result in loss.                                                           #
     #############################################################################
+    scores = X.dot(W)
+    scores -= np.max(scores, axis = 1, keepdims = True)
+    exp_scores = np.exp(scores)
+    p = exp_scores / np.sum(exp_scores, axis = 1, keepdims = True)
 
+    correct_class_p = p[np.arange(num_train), y]
+
+    data_loss = np.sum(-np.log(correct_class_p)) / num_train
+
+    res_loss = reg * np.sum(W * W)
+
+    loss = data_loss + res_loss
 
     #############################################################################
     # TODO:                                                                     #
@@ -84,6 +102,14 @@ def softmax_loss_vectorized(W, X, y, reg):
     # to reuse some of the intermediate values that you used to compute the     #
     # loss.                                                                     #
     #############################################################################
+    d_scores = p.copy()
 
+    d_scores[np.arange(num_train), y] -= 1
+
+    d_scores /= num_train
+
+    dW = np.dot(X.T, d_scores)
+
+    dW += 2 * reg * W
 
     return loss, dW
